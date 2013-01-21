@@ -1,0 +1,13 @@
+# Compiled files & object code
+*.py[cod]
+*.so
+
+# Log files
+pip-log.txt
+
+# Editor temporary files
+.*.sw[a-z]
+*~
+\#*\#
+*.tmp
+*.bak
