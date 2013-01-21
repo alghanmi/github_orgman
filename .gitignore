@@ -1,6 +1,9 @@
 # Configuration File
 orgman.conf
 
+# Organization Profiles
+*.profile
+
 # Compiled files & object code
 *.py[cod]
 *.so
