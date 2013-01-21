@@ -6,6 +6,10 @@ import argparse
 import requests
 import simplejson
 
+def unsupportedFeature(feature):
+	print "The following feature is not yet supported {}".format(feature)
+	exit(2)
+
 def gitHubRequest(url):
 	""" Return a dict with the result of this request """
 	r = requests.get(url, auth=(githubUsername, githubPassword))
@@ -20,12 +24,35 @@ def gitHubRequest(url):
 def getOrgInfo(orgName):
 	""" Lookup Organization Information """
 	res = gitHubRequest("https://api.github.com/orgs/{}".format(orgName))
-	
+	pprint(res)
 	if res != None:
 		print "Organization URL :", res["html_url"]
 		print "Organization ID  :", res["id"]
 		print "No. Public Repos :", res["public_repos"]
 		print "No. Private Repos:", res["owned_private_repos"]
+
+def generateOrgPofile(orgName):
+	""" Generate Organization Profile """
+	orgRes = gitHubRequest("https://api.github.com/orgs/{}".format(orgName))
+	if orgRes != None:
+		# Org info
+		print "[github_org]"
+		print "name = {}".format(orgRes["login"])
+		print "id = {}".format(orgRes["id"])
+		print "url = {}".format(orgRes["html_url"])
+		print ""
+		# Team info
+		print "[org_teams]"
+		teamRes = gitHubRequest("https://api.github.com/orgs/{}/teams".format(orgName))
+		for t in teamRes:
+			print "{} = {}".format(t["name"], t["id"])
+		print ""
+		# Member info
+		print "[org_members]"
+		memberRes = gitHubRequest("https://api.github.com/orgs/{}/members".format(orgName))
+		for m in memberRes:
+			print "{} = {}".format(m["login"], m["id"])
+	
 
 def printMembers(memberResultSet):
 	""" Print list of members given a result set """
@@ -76,21 +103,68 @@ githubPassword = parser.get("github", "password")
 """
 parser = argparse.ArgumentParser()
 parser.add_argument("org", help="name of GitHub organization", type=str) # Organization Name
-parser.add_argument("-l", "--list", help="option to list details of specified field such as org, team or member", action="store_true")
-parser.add_argument("-t", "--team", "--teams", help="perform operations on teams teams", action="store_true")
-parser.add_argument("-m", "--member", "--members", help="perform operations on members", action="store_true")
+subParser = parser.add_subparsers(help="commands")
+
+# List Commands
+listParser = subParser.add_parser("list", help="List details of specified attribute")
+listParser.add_argument("-p", "--profile", help="generate an organization/team profile", action="store_true", dest="listProfile")
+listParser.add_argument("-t", "--team", help="list team(s)", metavar="team_id", nargs="*", dest="listTeamID")
+listParser.add_argument("-m", "--member", help="list member(s)", metavar="member_id", nargs="*", dest="listMemberID")
+
+# Add Commands
+#addParser = subParser.add_parser("add", help="Add resources to specified organization")
+#addParser.add_argument("-t", "--team", "--teams", help="perform operations on teams teams", action="append", dest='teamArgs', default=[])
+#addParser.add_argument("-m", "--member", "--members", help="perform operations on members", action="append", dest='memberArgs', default=[])
 
 args = parser.parse_args()
+#pprint(args)
 
 """
-    GitHub API request
+    Manage user Requests
 """
+# list --profile
+if args.listProfile:
+	# Generate complete organization profile
+	if args.listTeamID == None and args.listMemberID == None:
+		generateOrgPofile(args.org)
+	# Generate team profile
+	elif args.listTeamID != None and args.listMemberID == None:
+		print "team profile"
+	# Generate member profile
+	elif args.listTeamID == None and args.listMemberID != None:
+		print "member profile"
+	# Generate a member's profile within a team
+	else:
+		unsupportedFeature("A member's pofile within a team")
+	
+		
 
-if args.list and args.team:
-	listOrgTeams(args.org, args.member)
+# list --team
+elif args.listTeamID != None:
+	# list --team (no team specificed)
+	if len(args.listTeamID) == 0:
+		# list --team --member (all team with members)
+		if args.listMemberID != None and len(args.listMemberID) == 0:
+			listOrgTeams(args.org, True)
+		# list --team --member member1 [member2 ...]
+		elif args.listMemberID != None and len(args.listMemberID) > 0:
+			unsupportedFeature("You can not specify members when listing multiple teams")
+		# list --team (list teams without members)
+		else:
+			listOrgTeams(args.org, False)
+	# list --team team1 [team2 ..] [--member]
+	else:
+		unsupportedFeature("listings involving one or more teams")
 
-elif args.list and args.member and (not args.team):
-	listOrgMembers(args.org)
+# list --member (no teams specified)
+elif args.listMemberID != None:
+	# list --member (all members)
+	if len(args.listMemberID) == 0:
+		listOrgMembers(args.org)
+	else:
+		unsupportedFeature("listings involving more than one team member")
 
+# no-option specified
 else:
 	getOrgInfo(args.org)
+""" # """
