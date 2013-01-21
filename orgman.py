@@ -61,14 +61,12 @@ def listOrgMembers(orgName):
 	""" List Organization Members """
 	res = gitHubRequest("https://api.github.com/orgs/{}/members".format(orgName))
 	printMembers(res)
-	#pprint(res)
-	#print len(res)
 
 """
    Obtain GitHub username & password from config file
 """
 parser = SafeConfigParser()
-parser.read("github.conf")
+parser.read("orgman.conf")
 
 githubUsername = parser.get("github", "username")
 githubPassword = parser.get("github", "password")
@@ -77,15 +75,17 @@ githubPassword = parser.get("github", "password")
     Get commandline arguments
 """
 parser = argparse.ArgumentParser()
-parser.add_argument("org", help="name of GitHub organization", type=str)
-parser.add_argument("-l", "--list", help="option to list details of specified field such as org or team", action="store_true")
+parser.add_argument("org", help="name of GitHub organization", type=str) # Organization Name
+parser.add_argument("-l", "--list", help="option to list details of specified field such as org, team or member", action="store_true")
 parser.add_argument("-t", "--team", "--teams", help="perform operations on teams teams", action="store_true")
 parser.add_argument("-m", "--member", "--members", help="perform operations on members", action="store_true")
+
 args = parser.parse_args()
 
 """
     GitHub API request
 """
+
 if args.list and args.team:
 	listOrgTeams(args.org, args.member)
 
