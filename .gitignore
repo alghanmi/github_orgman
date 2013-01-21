@@ -1,3 +1,6 @@
+# Configuration File
+orgman.conf
+
 # Compiled files & object code
 *.py[cod]
 *.so
