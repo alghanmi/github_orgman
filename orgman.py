@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import ConfigParser
 from ConfigParser import SafeConfigParser
 from pprint import pprint
 import argparse
@@ -21,6 +22,45 @@ def gitHubRequest(url):
 		print "[ERROR] Bad Request. Status Code", r.status_code
 		return None
 
+def gitHubPost(url, payload):
+	""" Send a POST request to GitHub via API """
+	r = requests.post(url, data=simplejson.dumps(payload), auth=(githubUsername, githubPassword))
+	res = simplejson.loads(r.content)
+	#pprint(res)
+	if r.status_code == 201:
+		return res
+	else:
+		details = ""
+		for e in res["errors"]:
+			details += "{}.{}: {}.".format(e["resource"], e["field"], e["code"])
+		print "[ERROR][HTTP {}] {} - {}".format(r.status_code, res["message"], details)
+		return None
+
+def gitHubPut(url):
+	""" Send a PUT request to GitHub via API """
+	# http://developer.github.com/v3/orgs/teams/#add-team-member
+	r = requests.put(url, auth=(githubUsername, githubPassword))
+	if r.status_code == 204:
+		return True
+	else:
+		res = simplejson.loads(r.content)
+		pprint(res)
+		details = ""
+		if "errors" in res:
+			for e in res["errors"]:
+				details += "{}.{}: {}.".format(e["resource"], e["field"], e["code"])
+		print "[ERROR][HTTP {}] {} - {}".format(r.status_code, res["message"], details)
+		return False
+
+def getGitHubUserInfo(username):
+	""" Lookup Organization Information """
+	res = gitHubRequest("https://api.github.com/users/{}".format(username))
+	#pprint(res)
+	if res != None:
+		return res
+	else:
+		return None
+
 def getOrgInfo(orgName):
 	""" Lookup Organization Information """
 	res = gitHubRequest("https://api.github.com/orgs/{}".format(orgName))
@@ -35,23 +75,33 @@ def generateOrgPofile(orgName):
 	""" Generate Organization Profile """
 	orgRes = gitHubRequest("https://api.github.com/orgs/{}".format(orgName))
 	if orgRes != None:
+		orgPorfileList = []
 		# Org info
-		print "[github_org]"
-		print "name = {}".format(orgRes["login"])
-		print "id = {}".format(orgRes["id"])
-		print "url = {}".format(orgRes["html_url"])
-		print ""
+		orgPorfileList.append("[github_org]")
+		orgPorfileList.append("name = {}".format(orgRes["login"]))
+		orgPorfileList.append("id = {}".format(orgRes["id"]))
+		orgPorfileList.append("url = {}".format(orgRes["html_url"]))
+		orgPorfileList.append("")
 		# Team info
-		print "[org_teams]"
+		orgPorfileList.append("[org_teams]")
 		teamRes = gitHubRequest("https://api.github.com/orgs/{}/teams".format(orgName))
 		for t in teamRes:
-			print "{} = {}".format(t["name"], t["id"])
-		print ""
+			orgPorfileList.append("{} = {}".format(t["name"], t["id"]))
+		orgPorfileList.append("")
 		# Member info
-		print "[org_members]"
+		orgPorfileList.append("[org_members]")
 		memberRes = gitHubRequest("https://api.github.com/orgs/{}/members".format(orgName))
 		for m in memberRes:
-			print "{} = {}".format(m["login"], m["id"])
+			orgPorfileList.append("{} = {}".format(m["login"], m["id"]))
+		
+		# Write info to file
+		orgProfileFileName = "{}.profile".format(orgName)
+		orgProfileFile = open(orgProfileFileName, "w")
+		for l in orgPorfileList:
+			orgProfileFile.writelines("{}\n".format(l))
+		orgProfileFile.close()
+		"""print "[INFO][PROFILE GENERATED] in {}".format(orgProfileFileName)
+		FIX ME"""
 	
 
 def printMembers(memberResultSet):
@@ -84,6 +134,22 @@ def listOrgTeams(orgName, listMembers):
 	else:
 		print "[INFO] No teams exist"
 
+def addOrgTeam(orgName, newTeam):
+	""" Add new team to the organization """
+	res = gitHubPost("https://api.github.com/orgs/{}/teams".format(orgName), {"name":newTeam})
+	if res != None:
+		print "[INFO][CREATE TEAM] ID = {}, Name = {}".format(res["id"], res["name"])
+	else:
+		print "[ERROR][CREATE TEAM] Failed to create team {}".format(newTeam)
+	
+def addOrgMember2Team(orgTeam, orgMember):
+	""" Add a GitHub user to an organization-based team """
+	res = gitHubPut("https://api.github.com/teams/{}/members/{}".format(orgTeam, orgMember))
+	if res == True:
+		print "[INFO][ADD MEMBER] {} added to team {}".format(orgMember, orgTeam)
+	else:
+		print "[ERROR][CREATE MEMBER] Failed to add member {} to team {}".format(orgMember, orgTeam)
+
 def listOrgMembers(orgName):
 	""" List Organization Members """
 	res = gitHubRequest("https://api.github.com/orgs/{}/members".format(orgName))
@@ -112,9 +178,10 @@ listParser.add_argument("-t", "--team", help="list team(s)", metavar="team_id", 
 listParser.add_argument("-m", "--member", help="list member(s)", metavar="member_id", nargs="*", dest="listMemberID")
 
 # Add Commands
-#addParser = subParser.add_parser("add", help="Add resources to specified organization")
-#addParser.add_argument("-t", "--team", "--teams", help="perform operations on teams teams", action="append", dest='teamArgs', default=[])
-#addParser.add_argument("-m", "--member", "--members", help="perform operations on members", action="append", dest='memberArgs', default=[])
+addParser = subParser.add_parser("add", help="Add resources to specified organization")
+addParser.add_argument("-p", "--profile", help="use an org profile to perform add operations", nargs=1, dest="addProfile")
+addParser.add_argument("-t", "--team", help="perform operations on teams", nargs=1, dest="addTeam")
+addParser.add_argument("-m", "--member", help="perform operations on members", nargs=1, dest="addMember")
 
 args = parser.parse_args()
 #pprint(args)
@@ -123,7 +190,7 @@ args = parser.parse_args()
     Manage user Requests
 """
 # list --profile
-if args.listProfile:
+if 'listProfile' in args and args.listProfile:
 	# Generate complete organization profile
 	if args.listTeamID == None and args.listMemberID == None:
 		generateOrgPofile(args.org)
@@ -140,7 +207,7 @@ if args.listProfile:
 		
 
 # list --team
-elif args.listTeamID != None:
+elif 'listTeamID' in args and args.listTeamID != None:
 	# list --team (no team specificed)
 	if len(args.listTeamID) == 0:
 		# list --team --member (all team with members)
@@ -157,12 +224,50 @@ elif args.listTeamID != None:
 		unsupportedFeature("listings involving one or more teams")
 
 # list --member (no teams specified)
-elif args.listMemberID != None:
+elif 'listTeamID' in args and args.listMemberID != None:
 	# list --member (all members)
 	if len(args.listMemberID) == 0:
 		listOrgMembers(args.org)
 	else:
 		unsupportedFeature("listings involving more than one team member")
+
+# add --team t1
+elif args.addTeam != None and args.addMember == None:
+	addOrgTeam(args.org, args.addTeam[0])
+
+# add --member m1
+elif args.addTeam == None and args.addMember == None:
+	print "[ERROR][ADD MEMBER] GitHub does not allow adding members without teams"
+	
+# add --team t1 --member m1
+elif args.addTeam != None and args.addMember != None:
+	if args.addProfile != None:
+		unsupportedFeature("Using existing profile")
+	else:
+		"""print "[INFO] This option requires generating a profile one will be created in {}.profile".format(args.org)
+		FIX ME
+		"""
+		generateOrgPofile(args.org)
+		orgProfileParser = SafeConfigParser()
+		orgProfileParser.read("{}.profile".format(args.org))
+		try:
+			teamID = orgProfileParser.get("org_teams", args.addTeam[0])
+#			try:
+#				memberID = orgProfileParser.get("org_members", args.addMember[0])
+			addOrgMember2Team(teamID, args.addMember[0])
+#			except ConfigParser.NoOptionError:
+#				print "[INFO][ADD MEMBER] {} is not a current organization member. Attempting to add now.".format(args.addMember[0])
+#				mRes = getGitHubUserInfo(args.addMember[0])
+#				if mRes != None:
+#					memberID = mRes["id"]
+#					addOrgMember2Team(args.org, teamID, memberID)
+#				else:
+#					print "[ERROR][ADD MEMBER] {} is not a valid GitHub user".format(args.addMember[0])
+		except ConfigParser.NoOptionError:
+			print "[ERROR][ADD MEMBER] {} team does not exist in {}".format(args.addTeam[0], args.org)
+			
+		
+		
 
 # no-option specified
 else:
