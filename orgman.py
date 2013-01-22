@@ -134,9 +134,9 @@ def listOrgTeams(orgName, listMembers):
 	else:
 		print "[INFO] No teams exist"
 
-def addOrgTeam(orgName, newTeam):
+def addOrgTeam(orgName, newTeam, teamPermissions):
 	""" Add new team to the organization """
-	res = gitHubPost("https://api.github.com/orgs/{}/teams".format(orgName), {"name":newTeam})
+	res = gitHubPost("https://api.github.com/orgs/{}/teams".format(orgName), {"name":newTeam, "permission":teamPermissions})
 	if res != None:
 		print "[INFO][CREATE TEAM] ID = {}, Name = {}".format(res["id"], res["name"])
 	else:
@@ -181,6 +181,7 @@ listParser.add_argument("-m", "--member", help="list member(s)", metavar="member
 addParser = subParser.add_parser("add", help="Add resources to specified organization")
 addParser.add_argument("-p", "--profile", help="use an org profile to perform add operations", nargs=1, dest="addProfile")
 addParser.add_argument("-t", "--team", help="perform operations on teams", nargs=1, dest="addTeam")
+addParser.add_argument("-e", "--perm", help="level of permission", choices=["pull", "push", "admin"], dest="addPerm", default="pull")
 addParser.add_argument("-m", "--member", help="perform operations on members", nargs=1, dest="addMember")
 
 args = parser.parse_args()
@@ -233,7 +234,7 @@ elif 'listTeamID' in args and args.listMemberID != None:
 
 # add --team t1
 elif args.addTeam != None and args.addMember == None:
-	addOrgTeam(args.org, args.addTeam[0])
+	addOrgTeam(args.org, args.addTeam[0], args.addPerm)
 
 # add --member m1
 elif args.addTeam == None and args.addMember == None:
@@ -241,30 +242,21 @@ elif args.addTeam == None and args.addMember == None:
 	
 # add --team t1 --member m1
 elif args.addTeam != None and args.addMember != None:
+	orgProfileFile = ""
 	if args.addProfile != None:
-		unsupportedFeature("Using existing profile")
+		orgProfileFile = args.addProfile[0]
 	else:
-		"""print "[INFO] This option requires generating a profile one will be created in {}.profile".format(args.org)
-		FIX ME
-		"""
 		generateOrgPofile(args.org)
-		orgProfileParser = SafeConfigParser()
-		orgProfileParser.read("{}.profile".format(args.org))
-		try:
-			teamID = orgProfileParser.get("org_teams", args.addTeam[0])
-#			try:
-#				memberID = orgProfileParser.get("org_members", args.addMember[0])
-			addOrgMember2Team(teamID, args.addMember[0])
-#			except ConfigParser.NoOptionError:
-#				print "[INFO][ADD MEMBER] {} is not a current organization member. Attempting to add now.".format(args.addMember[0])
-#				mRes = getGitHubUserInfo(args.addMember[0])
-#				if mRes != None:
-#					memberID = mRes["id"]
-#					addOrgMember2Team(args.org, teamID, memberID)
-#				else:
-#					print "[ERROR][ADD MEMBER] {} is not a valid GitHub user".format(args.addMember[0])
-		except ConfigParser.NoOptionError:
-			print "[ERROR][ADD MEMBER] {} team does not exist in {}".format(args.addTeam[0], args.org)
+		orgProfileFile = "{}.profile".format(args.org)
+	
+	orgProfileParser = SafeConfigParser()
+	orgProfileParser.read(orgProfileFile)
+	
+	try:
+		teamID = orgProfileParser.get("org_teams", args.addTeam[0])
+		addOrgMember2Team(teamID, args.addMember[0])
+	except ConfigParser.NoOptionError:
+		print "[ERROR][ADD MEMBER] {} team does not exist in {}".format(args.addTeam[0], args.org)
 			
 		
 		
