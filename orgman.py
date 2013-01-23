@@ -134,6 +134,28 @@ def listOrgTeams(orgName, listMembers):
 	else:
 		print "[INFO] No teams exist"
 
+def addRepository(orgName, repoName, description, isPrivate, gitignore):
+	""" Add a new repository to the organization """
+	""" FIX ME: need to use optional parameters and then set defaults """
+	payload = {}
+	payload["name"] = repoName
+	if description != None:
+		payload["description"] = description
+	payload["private"] = isPrivate
+	payload["has_issues"] = True
+	payload["has_wiki"] = True
+	payload["has_downloads"] = True
+	payload["auto_init"] = True
+	if gitignore != None:
+		payload["gitignore_template"] = gitignore
+	
+	
+	res = gitHubPost("https://api.github.com/orgs/{}/repos".format(orgName), payload)
+	if res != None:
+		print "[INFO][CREATE REPO] {}/{}".format(orgName, repoName)
+	else:
+		print "[ERROR][CREATE REPO] Failed to create repo {}/{}".format(orgName, repoName)
+
 def addOrgTeam(orgName, newTeam, teamPermissions):
 	""" Add new team to the organization """
 	res = gitHubPost("https://api.github.com/orgs/{}/teams".format(orgName), {"name":newTeam, "permission":teamPermissions})
@@ -149,6 +171,14 @@ def addOrgMember2Team(orgTeam, orgMember):
 		print "[INFO][ADD MEMBER] {} added to team {}".format(orgMember, orgTeam)
 	else:
 		print "[ERROR][CREATE MEMBER] Failed to add member {} to team {}".format(orgMember, orgTeam)
+
+def addOrgRepo2Team(orgName, orgTeam, orgRepo):
+	""" Add a repository to an organization-based team """
+	res = gitHubPut("https://api.github.com/teams/{}/repos/{}/{}".format(orgTeam, orgName, orgRepo))
+	if res == True:
+		print "[INFO][ADD TEAM] {} added to the {}/{}".format(orgTeam, orgName, orgRepo)
+	else:
+		print "[ERROR][ADD TEAM] {} added to the {}/{}".format(orgTeam, orgName, orgRepo)
 
 def listOrgMembers(orgName):
 	""" List Organization Members """
@@ -180,6 +210,7 @@ listParser.add_argument("-m", "--member", help="list member(s)", metavar="member
 # Add Commands
 addParser = subParser.add_parser("add", help="Add resources to specified organization")
 addParser.add_argument("-p", "--profile", help="use an org profile to perform add operations", nargs=1, dest="addProfile")
+addParser.add_argument("-r", "--repo", help="perform operations on repositories", nargs=1, dest="addRepo")
 addParser.add_argument("-t", "--team", help="perform operations on teams", nargs=1, dest="addTeam")
 addParser.add_argument("-e", "--perm", help="level of permission", choices=["pull", "push", "admin"], dest="addPerm", default="pull")
 addParser.add_argument("-m", "--member", help="perform operations on members", nargs=1, dest="addMember")
@@ -233,15 +264,15 @@ elif 'listTeamID' in args and args.listMemberID != None:
 		unsupportedFeature("listings involving more than one team member")
 
 # add --team t1
-elif args.addTeam != None and args.addMember == None:
+elif args.addTeam != None and args.addMember == None and args.addRepo == None:
 	addOrgTeam(args.org, args.addTeam[0], args.addPerm)
 
 # add --member m1
-elif args.addTeam == None and args.addMember == None:
+elif args.addTeam == None and args.addMember != None and args.addRepo == None:
 	print "[ERROR][ADD MEMBER] GitHub does not allow adding members without teams"
 	
 # add --team t1 --member m1
-elif args.addTeam != None and args.addMember != None:
+elif args.addTeam != None and args.addMember != None and args.addRepo == None:
 	orgProfileFile = ""
 	if args.addProfile != None:
 		orgProfileFile = args.addProfile[0]
@@ -257,9 +288,30 @@ elif args.addTeam != None and args.addMember != None:
 		addOrgMember2Team(teamID, args.addMember[0])
 	except ConfigParser.NoOptionError:
 		print "[ERROR][ADD MEMBER] {} team does not exist in {}".format(args.addTeam[0], args.org)
-			
-		
-		
+
+# add --repo r1
+elif args.addTeam == None and args.addMember == None and args.addRepo != None:
+	""" Using default options for repo - should fix for better usability """
+	""" FIX ME: take options from commandline """
+	addRepository(args.org, args.addRepo[0], "private lab repository for CS 102 student", True, "C++")
+
+# add --repo r1 --team t1
+elif args.addTeam != None and args.addMember == None and args.addRepo != None:
+	orgProfileFile = ""
+	if args.addProfile != None:
+		orgProfileFile = args.addProfile[0]
+	else:
+		generateOrgPofile(args.org)
+		orgProfileFile = "{}.profile".format(args.org)
+	
+	orgProfileParser = SafeConfigParser()
+	orgProfileParser.read(orgProfileFile)
+	
+	try:
+		teamID = orgProfileParser.get("org_teams", args.addTeam[0])
+		addOrgRepo2Team(args.org, teamID, args.addRepo[0])
+	except ConfigParser.NoOptionError:
+		print "[ERROR][ADD MEMBER] {} team does not exist in {}".format(args.addTeam[0], args.org)
 
 # no-option specified
 else:
