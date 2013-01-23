@@ -26,10 +26,14 @@ cp orgman.conf.default orgman.conf
 ### Adding Members to Organization
 Members should be [GitHub](https://github.com/signup/free) users and they need to be added to a team in order to be members of organization. Start by creating a `TEAM_NAME` team:
 ```shell
-python orgman.py ORG_NAME add -t TEAM_NAME
+python orgman.py ORG_NAME add --team TEAM_NAME
 ```
 
-GitHub uses id numbers for all its users and teams. For usability, `orgman` creates an ini-style organization profile file to lookup such information. if you created a profile beforehand, you can simply use that one.
+GitHub uses id numbers for all its teams. For usability, `orgman` creates an ini-style organization profile file to lookup such information. if you created a profile beforehand, you can simply use that one.
 ```shell
-python orgman.py ORG_NAME add -t TEAM_NAME -m GITHUB_USERNAME
+python orgman.py ORG_NAME add --team TEAM_NAME --memeber GITHUB_USERNAME
+```
+or
+```shell
+python orgman.py ORG_NAME add --profile ORG_NAME.profile --team TEAM_NAME -memeber GITHUB_USERNAME
 ```
