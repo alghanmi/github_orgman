@@ -64,7 +64,7 @@ def getGitHubUserInfo(username):
 def getOrgInfo(orgName):
 	""" Lookup Organization Information """
 	res = gitHubRequest("https://api.github.com/orgs/{}".format(orgName))
-	pprint(res)
+	#pprint(res)
 	if res != None:
 		print "Organization URL :", res["html_url"]
 		print "Organization ID  :", res["id"]
@@ -102,7 +102,47 @@ def generateOrgPofile(orgName):
 		orgProfileFile.close()
 		"""print "[INFO][PROFILE GENERATED] in {}".format(orgProfileFileName)
 		FIX ME"""
+
+ 
+
+def getTeamDetails(teamID):
+	""" List Team Members """
+	tid = ""
+	tname = ""
+	tperm = ""
+	tmembers = 0
+	trepos = 0
 	
+	if teamID.isdigit() == True:
+		tid = teamID
+	else:
+		print "[ERROR] Need Team ID. {} is not enough information".format(tid)
+		return
+	
+	# get Team Info
+	res = gitHubRequest("https://api.github.com/teams/{}".format(tid))
+	if res != None:
+		tname = res["name"]
+		tperm = res["permission"]
+		tmembers = res["members_count"]
+		trepos = res["repos_count"]
+	else:
+		print "[ERROR][TEAM {}] No such team.".format(tid)
+		return
+	
+	# get Team Members	
+	res = gitHubRequest("https://api.github.com/teams/{}/members".format(tid))
+	if res != None:
+		#pprint(res)
+		if(len(res) >= 1):
+			memberList = ""
+			for r in res:
+				memberList += " " + r["login"]
+			print "[INFO][TEAM {}] Name: {}, Permissions: {}, No. Repos: {}, Members[{}]:{}".format(tid, tname, tperm, trepos, tmembers, memberList)
+		else:
+			print "[INFO][TEAM {}] Name: {}, Permissions: {}, No. Repos: {}, Members[{}]: None".format(tid, tname, tperm, trepos, tmembers)
+	else:
+		print "[ERROR] No teams exist"
 
 def printMembers(memberResultSet):
 	""" Print list of members given a result set """
@@ -253,7 +293,8 @@ elif 'listTeamID' in args and args.listTeamID != None:
 			listOrgTeams(args.org, False)
 	# list --team team1 [team2 ..] [--member]
 	else:
-		unsupportedFeature("listings involving one or more teams")
+		for t in args.listTeamID:
+			getTeamDetails(t)
 
 # list --member (no teams specified)
 elif 'listTeamID' in args and args.listMemberID != None:
@@ -264,15 +305,15 @@ elif 'listTeamID' in args and args.listMemberID != None:
 		unsupportedFeature("listings involving more than one team member")
 
 # add --team t1
-elif args.addTeam != None and args.addMember == None and args.addRepo == None:
+elif 'addTeam' in args and args.addTeam != None and args.addMember == None and args.addRepo == None:
 	addOrgTeam(args.org, args.addTeam[0], args.addPerm)
 
 # add --member m1
-elif args.addTeam == None and args.addMember != None and args.addRepo == None:
+elif 'addTeam' in args and args.addTeam == None and args.addMember != None and args.addRepo == None:
 	print "[ERROR][ADD MEMBER] GitHub does not allow adding members without teams"
 	
 # add --team t1 --member m1
-elif args.addTeam != None and args.addMember != None and args.addRepo == None:
+elif 'addTeam' in args and args.addTeam != None and args.addMember != None and args.addRepo == None:
 	orgProfileFile = ""
 	if args.addProfile != None:
 		orgProfileFile = args.addProfile[0]
@@ -290,13 +331,13 @@ elif args.addTeam != None and args.addMember != None and args.addRepo == None:
 		print "[ERROR][ADD MEMBER] {} team does not exist in {}".format(args.addTeam[0], args.org)
 
 # add --repo r1
-elif args.addTeam == None and args.addMember == None and args.addRepo != None:
+elif 'addRepo' in args and args.addTeam == None and args.addMember == None and args.addRepo != None:
 	""" Using default options for repo - should fix for better usability """
 	""" FIX ME: take options from commandline """
 	addRepository(args.org, args.addRepo[0], "private lab repository for CS 102 student", True, "C++")
 
 # add --repo r1 --team t1
-elif args.addTeam != None and args.addMember == None and args.addRepo != None:
+elif 'addRepo' in args and args.addTeam != None and args.addMember == None and args.addRepo != None:
 	orgProfileFile = ""
 	if args.addProfile != None:
 		orgProfileFile = args.addProfile[0]
