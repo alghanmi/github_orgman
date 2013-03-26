@@ -51,6 +51,22 @@ def gitHubPut(url):
 				details += "{}.{}: {}.".format(e["resource"], e["field"], e["code"])
 		print "[ERROR][HTTP {}] {} - {}".format(r.status_code, res["message"], details)
 		return False
+		
+def gitHubPatch(url, payload):
+	""" Send a PATCH request to GitHub via API"""
+	# http://developer.github.com/v3/orgs/teams/#edit-team
+	r = requests.patch(url, auth=(githubUsername, githubPassword))
+	if r.status_code == 200:
+		return True
+	else:
+		res = simplejson.loads(r.content)
+		pprint(res)
+		details = ""
+		if "errors" in res:
+			for e in res["errors"]:
+				details += "{}.{}: {}.".format(e["resource"], e["field"], e["code"])
+		print "[ERROR][HTTP {}] {} - {}".format(r.status_code, res["message"], details)
+		return False
 
 def getGitHubUserInfo(username):
 	""" Lookup Organization Information """
@@ -225,6 +241,26 @@ def listOrgMembers(orgName):
 	res = gitHubRequest("https://api.github.com/orgs/{}/members".format(orgName))
 	printMembers(res)
 
+
+
+def updateTeamNameAndPermissions(teamID, newName, newPerm):
+	payload = {"name":newName}
+	if newPerm !=None:
+		payload["permission"]=newPerm
+		
+	res = gitHubPatch("https://api.github.com/teams/{}".format(teamID), payload)
+	if res == True:
+		print "[INFO][UPDATE TEAM] Team #{} changed to name:{}/perm:{}".format(teamID, newName, (newPerm==None?"(permission left alone)":newPerm))
+	else:
+		print "[ERROR][UPDATE TEAM] Team #{} couldn't be changed to name:{}/perm:{}".format(teamID, newName, (newPerm==None?"(permission left alone)":newPerm))
+
+
+
+
+
+
+
+
 """
    Obtain GitHub username & password from config file
 """
@@ -254,6 +290,12 @@ addParser.add_argument("-r", "--repo", help="perform operations on repositories"
 addParser.add_argument("-t", "--team", help="perform operations on teams", nargs=1, dest="addTeam")
 addParser.add_argument("-e", "--perm", help="level of permission", choices=["pull", "push", "admin"], dest="addPerm", default="pull")
 addParser.add_argument("-m", "--member", help="perform operations on members", nargs=1, dest="addMember")
+
+# Update Commands
+updateParser = subParser.add_parser("update", help="Change a team name or permission level")
+updateParser.add_argument("-t", "--team", help="specify team to modify", nargs=1, dest="updateTeam")
+updateParser.add_argument("-e", "--perm", help="modify permission level of team", choices=["pull", "push","admin"], dest="updatePerm")
+updateParser.add_argument("-n","--name", help="new name for team", dest="updateName", nargs=1)
 
 args = parser.parse_args()
 #pprint(args)
@@ -353,6 +395,24 @@ elif 'addRepo' in args and args.addTeam != None and args.addMember == None and a
 		addOrgRepo2Team(args.org, teamID, args.addRepo[0])
 	except ConfigParser.NoOptionError:
 		print "[ERROR][ADD MEMBER] {} team does not exist in {}".format(args.addTeam[0], args.org)
+
+# update --team t1 [[--name newName] || [--perm newPerm]]
+elif 'updateTeam' in args and ( args.updateName != None or args.updatePerm != None):
+	orgProfileFile = ""
+	if args.addProfile != None:
+		orgProfileFile = args.addProfile[0]
+	else:
+		generateOrgPofile(args.org)
+		orgProfileFile = "{}.profile".format(args.org)
+	
+	orgProfileParser = SafeConfigParser()
+	orgProfileParser.read(orgProfileFile)
+	
+	try:
+		teamID = orgProfileParser.get("org_teams", args.addTeam[0])
+		updateTeamNameAndPermissions(teamID, (args.updateName==None?args.addTeam[0]:args.updateName), args.updatePerm)
+	except ConfigParser.NoOptionError:
+		print "[ERROR][UPDATE TEAM] {} team does not exist in organization {}".format(args.updateTeam[0], args.org)
 
 # no-option specified
 else:
