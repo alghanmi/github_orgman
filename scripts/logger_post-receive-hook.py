@@ -62,7 +62,7 @@ else:
             log_message = '{}{} {}'.format(log_lead, log_repo, log_commit)
 
         """ Write Ouput to File """
-        logFileName = '{}_{}.log'.format(repo_org, repo_name)
+        logFileName = '{}.{}.log'.format(repo_org, repo_name)
         logFile = open(logFileName, 'a')
         logFile.writelines(log_message)
         logFile.writelines('\n\n')
