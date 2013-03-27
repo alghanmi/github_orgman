@@ -220,6 +220,23 @@ def addOrgRepo2Team(orgName, orgTeam, orgRepo):
 	else:
 		print "[ERROR][ADD TEAM] {} added to the {}/{}".format(orgTeam, orgName, orgRepo)
 
+def addWebHook(orgName, repoName, hookURL):
+	""" Add a Web Hook to the Repository"""
+	payload = {}
+	payload["name"] = "web"
+	payload["active"] = True
+	payload["events"] = [ "push", "pull_request" ]
+	payload["config"] = { "url" : hookURL, "content_type": "json"  }
+	
+	pprint(payload)
+	
+	res = gitHubPost("https://api.github.com/repos/{}/{}/hooks".format(orgName, repoName), payload)
+	
+	if res != None:
+		print "[INFO][ADD Hook] {} added to the {}/{}".format(res["url"], orgName, repoName)
+	else:
+		print "[ERROR][ADD Hook] No hook added to {}/{}".format(orgName, repoName)
+
 def listOrgMembers(orgName):
 	""" List Organization Members """
 	res = gitHubRequest("https://api.github.com/orgs/{}/members".format(orgName))
@@ -254,6 +271,7 @@ addParser.add_argument("-r", "--repo", help="perform operations on repositories"
 addParser.add_argument("-t", "--team", help="perform operations on teams", nargs=1, dest="addTeam")
 addParser.add_argument("-e", "--perm", help="level of permission", choices=["pull", "push", "admin"], dest="addPerm", default="pull")
 addParser.add_argument("-m", "--member", help="perform operations on members", nargs=1, dest="addMember")
+addParser.add_argument("-k", "--hook", help="perform operations on hooks", nargs=1, dest="addHook")
 
 args = parser.parse_args()
 #pprint(args)
@@ -305,15 +323,15 @@ elif 'listTeamID' in args and args.listMemberID != None:
 		unsupportedFeature("listings involving more than one team member")
 
 # add --team t1
-elif 'addTeam' in args and args.addTeam != None and args.addMember == None and args.addRepo == None:
+elif 'addTeam' in args and args.addTeam != None and args.addMember == None and args.addRepo == None and args.addHook == None:
 	addOrgTeam(args.org, args.addTeam[0], args.addPerm)
 
 # add --member m1
-elif 'addTeam' in args and args.addTeam == None and args.addMember != None and args.addRepo == None:
+elif 'addTeam' in args and args.addTeam == None and args.addMember != None and args.addRepo == None and args.addHook == None:
 	print "[ERROR][ADD MEMBER] GitHub does not allow adding members without teams"
 	
 # add --team t1 --member m1
-elif 'addTeam' in args and args.addTeam != None and args.addMember != None and args.addRepo == None:
+elif 'addTeam' in args and args.addTeam != None and args.addMember != None and args.addRepo == None and args.addHook == None:
 	orgProfileFile = ""
 	if args.addProfile != None:
 		orgProfileFile = args.addProfile[0]
@@ -331,13 +349,18 @@ elif 'addTeam' in args and args.addTeam != None and args.addMember != None and a
 		print "[ERROR][ADD MEMBER] {} team does not exist in {}".format(args.addTeam[0], args.org)
 
 # add --repo r1
-elif 'addRepo' in args and args.addTeam == None and args.addMember == None and args.addRepo != None:
+elif 'addRepo' in args and args.addTeam == None and args.addMember == None and args.addRepo != None and args.addHook == None:
 	""" Using default options for repo - should fix for better usability """
 	""" FIX ME: take options from commandline """
 	addRepository(args.org, args.addRepo[0], "private lab repository for CS 102 student", True, "C++")
 
+# add --repo r1 --hook url
+elif 'addRepo' in args and args.addTeam == None and args.addMember == None and args.addRepo != None and args.addHook != None:
+	""" Add web hook to repo """
+	addWebHook(args.org, args.addRepo[0], args.addHook[0])
+
 # add --repo r1 --team t1
-elif 'addRepo' in args and args.addTeam != None and args.addMember == None and args.addRepo != None:
+elif 'addRepo' in args and args.addTeam != None and args.addMember == None and args.addRepo != None and args.addHook == None:
 	orgProfileFile = ""
 	if args.addProfile != None:
 		orgProfileFile = args.addProfile[0]
