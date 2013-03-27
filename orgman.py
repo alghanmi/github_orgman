@@ -245,7 +245,7 @@ def addWebHook(orgName, repoName, hookURL):
 	payload["events"] = [ "push", "pull_request" ]
 	payload["config"] = { "url" : hookURL, "content_type": "json"  }
 	
-	pprint(payload)
+	#pprint(payload)
 	
 	res = gitHubPost("https://api.github.com/repos/{}/{}/hooks".format(orgName, repoName), payload)
 	
