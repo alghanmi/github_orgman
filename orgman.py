@@ -16,7 +16,9 @@ def gitHubRequest(url):
 	r = requests.get(url, auth=(githubUsername, githubPassword))
 	if r.status_code == 200:
 		res = simplejson.loads(r.content)
-		#pprint(res)
+		if 'next' in r.links:
+			res.extend(gitHubGet(r.links['next']['url']))
+        
 		return res
 	else:
 		print "[ERROR] Bad Request. Status Code", r.status_code
