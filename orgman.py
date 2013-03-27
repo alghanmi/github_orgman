@@ -45,7 +45,7 @@ def gitHubPut(url):
 		return True
 	else:
 		res = simplejson.loads(r.content)
-		pprint(res)
+		#pprint(res)
 		details = ""
 		if "errors" in res:
 			for e in res["errors"]:
@@ -61,7 +61,7 @@ def gitHubPatch(url, payload):
 		return True
 	else:
 		res = simplejson.loads(r.content)
-		pprint(res)
+		#pprint(res)
 		details = ""
 		if "errors" in res:
 			for e in res["errors"]:
