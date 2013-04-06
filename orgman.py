@@ -16,7 +16,9 @@ def gitHubRequest(url):
 	r = requests.get(url, auth=(githubUsername, githubPassword))
 	if r.status_code == 200:
 		res = simplejson.loads(r.content)
-		#pprint(res)
+		if 'next' in r.links:
+			res.extend(gitHubRequest(r.links['next']['url']))
+        
 		return res
 	else:
 		print "[ERROR] Bad Request. Status Code", r.status_code
@@ -191,6 +193,21 @@ def listOrgTeams(orgName, listMembers):
 	else:
 		print "[INFO] No teams exist"
 
+def listOrgRepos(orgName):
+	""" List All repositories within an org
+    FIX ME: add an option to list repo details """
+	res = gitHubRequest("https://api.github.com/orgs/{}/repos".format(orgName))
+	
+	if res != None:		
+		repoCount = 0
+		for r in res:
+			repoCount += 1
+			
+			print "{}".format(r["ssh_url"])
+				
+	else:
+		print "[INFO] No repositories exist"
+
 def addRepository(orgName, repoName, description, isPrivate, gitignore):
 	""" Add a new repository to the organization """
 	""" FIX ME: need to use optional parameters and then set defaults """
@@ -300,6 +317,7 @@ listParser = subParser.add_parser("list", help="List details of specified attrib
 listParser.add_argument("-p", "--profile", help="generate an organization/team profile", action="store_true", dest="listProfile")
 listParser.add_argument("-t", "--team", help="list team(s)", metavar="team_id", nargs="*", dest="listTeamID")
 listParser.add_argument("-m", "--member", help="list member(s)", metavar="member_id", nargs="*", dest="listMemberID")
+listParser.add_argument("-s", "--repos", help="list repos", action="store_true", dest="listRepos")
 
 # Add Commands
 addParser = subParser.add_parser("add", help="Add resources to specified organization")
@@ -338,6 +356,20 @@ if 'listProfile' in args and args.listProfile:
 	else:
 		unsupportedFeature("A member's pofile within a team")
 	
+# list --repos
+if 'listRepos' in args and args.listRepos:
+	# List all repos in the organization
+	if args.listTeamID == None and args.listMemberID == None:
+		listOrgRepos(args.org)
+	# List all team repos
+	elif args.listTeamID != None and args.listMemberID == None:
+		unsupportedFeature("List all team repos")
+	# List all member repos (within the organization)
+	elif args.listTeamID == None and args.listMemberID != None:
+		unsupportedFeature("List all member repos (within the organization)")
+	# List repos belonging to both a team and a member
+	else:
+		unsupportedFeature("List repos belonging to both a team and a member")
 		
 
 # list --team
