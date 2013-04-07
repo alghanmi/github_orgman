@@ -37,3 +37,8 @@ or
 ```shell
 python orgman.py ORG_NAME add --profile ORG_NAME.profile --team TEAM_NAME -memeber GITHUB_USERNAME
 ```
+
+Adding milestone to repo and assigne it to a user and give it a label
+```shell
+python orgman.py ORG_NAME add --repo REPO_NAME --member GITHUB_USERNAME --issues ISSUES_FILE
+```
