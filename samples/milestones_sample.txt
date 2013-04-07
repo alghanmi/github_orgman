@@ -1,0 +1,37 @@
+[labels]
+PA4 = CC6600
+
+[milestones]
+4A = Milestone 4A
+4B = Milestone 4B
+4C = Milestone 4C
+
+[4A]
+#description = desc1
+date = 2013-04-10T23:44:59-08:00
+4a.1 = "Puzzle Play Implementation", "Implement the game play using the mouse to move tiles. Users must have entered values correctly in the three text boxes so you can display the proper board. A game is started using the 'Start Game' button.", "PA4"
+4a.2 = "Quit Button", "The 'Quit' button terminates the program.", "PA4"
+4a.3 = "Handling of Illegal Values", "Error messages are displayed (in the GUI, not the command line) if the text boxes have illegal values, or if missing values when the Start Game button is pressed.", "PA4"
+4a.4 = "Moving Tiles", "Tiles move immediately to the proper location, when they are clicked upon. They are not animated.", "PA4"
+4a.5 = "Test Manual Play", "Test your basic manual tile puzzle game.", "PA4"
+
+
+[4B]
+#description = desc2
+date = 2013-04-15T23:44:59-08:00
+4b.1 = "Heuristic Selection", "Users can select a heuristic through the two radio buttons.", "PA4"
+4b.2 = "A* Execution", " The A* algorithm from PA3 is executed when the user clicks on the push button for running A*.", "PA4"
+4b.3 = "Handling of Illegal Options", "Error messages are displayed if the user has not selected a heuristic, nor has a game been started.", "PA4"
+4b.4 = "Tile Animation", "Tiles are now to slide to their correct position. You will have to start a timer to move the tile, then stop the timer when the tile has reached its correct position.", "PA4"
+4b.5 = "Display of A* Output", "The output from running A* is displayed in the list box correctly.", "PA4"
+
+
+[4C]
+#description = desc3
+date = 2013-04-15T23:44:59-08:00
+4c.1 = "Memory Deallocation", "Be sure you deallocate (free/delete) any memory you dynamically allocate (run `valgrind --tool=memcheck --leak-check=yes ./qtpuzzle` to check). You are not responsible for any memory leaks that Qt has (i.e. 'new' operations that you did not write that were not properly deallocated.", "PA4"
+4c.2 = "Documentation Using Doxygen", "Be sure each of your classes is appropriately documented/commented using Doxygen style comments [i.e. run doxygen and see that the corresponding web pages are appropriate].", "PA4"
+4c.3 = "Prepare Your Repository", "By following the instructions in the [prepare your code for submission](https://github.com/usc-csci102-spring2013/programming_assignments/wiki/PA-Submission-Instructions#0-preparing-your-code-for-submission) section of the [PA Submission Instructions](https://github.com/usc-csci102-spring2013/programming_assignments/wiki/PA-Submission-Instructions).", "PA4"
+4c.4 = "Re-clone Your Submission", "By following the instructions in the verification section of the [PA Submission Instructions](https://github.com/usc-csci102-spring2013/programming_assignments/wiki/PA-Submission-Instructions#1-verifying-your-submission-before-the-deadline), re-clone your repo into a separate directory to ensure:
+  + You have pushed all the working code.
+  + Your code compiles with **no warnings** and **no errors**.", "PA4"
