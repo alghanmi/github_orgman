@@ -3,6 +3,7 @@
 import ConfigParser
 from ConfigParser import SafeConfigParser
 from pprint import pprint
+import csv
 import argparse
 import requests
 import simplejson
@@ -230,6 +231,43 @@ def addRepository(orgName, repoName, description, isPrivate, gitignore):
 	else:
 		print "[ERROR][CREATE REPO] Failed to create repo {}/{}".format(orgName, repoName)
 
+def addLabel(orgName, repoName, labelName, labelColor):
+	""" Add a new label to the issue tracker of a repo """
+	payload = {"name":labelName, "color":labelColor}
+
+	res = gitHubPost("https://api.github.com/repos/{}/{}/labels".format(orgName, repoName), payload)
+	if res != None:
+		print "[INFO][CREATE LABEL] {} colored {} in {}/{}".format(res["name"], res["color"], orgName, repoName)
+	else:
+		print "[ERROR][CREATE LABEL] Failed to create {} in {}/{}".format(labelName, orgName, repoName)
+
+def addMilestone(orgName, repoName, milestoneTitle, milestoneDesc, milestoneDue):
+	""" Add a new Mailestone to the issue tracker of a repo """
+	payload = {"title":milestoneTitle}
+	if milestoneDue:
+		payload["due_on"] = milestoneDue
+	if milestoneDesc:
+		payload["description"] = milestoneDesc
+
+	res = gitHubPost("https://api.github.com/repos/{}/{}/milestones".format(orgName, repoName), payload)
+	if res != None:
+		print "[INFO][CREATE MILESTONE] {}.{} due on {} in {}/{}".format(res["number"], res["title"], res["due_on"], orgName, repoName)
+		return res["number"]
+	else:
+		print "[ERROR][CREATE MILESTONE] Failed to create {} in {}/{}".format(milestoneTitle, orgName, repoName)
+
+def addIssue(orgName, repoName, issueTitle, issueBody, issueAssignee, milestone, issueLabel):
+	""" Add a new issue to the issue tracker of a repo """
+	labels = [ issueLabel ]
+	payload = {"title":issueTitle, "body":issueBody, "assignee":issueAssignee, "milestone":milestone, "labels":labels}
+
+	res = gitHubPost("https://api.github.com/repos/{}/{}/issues".format(orgName, repoName), payload)
+	if res != None:
+		print "[INFO][CREATE ISSUE] {}.{} in {}/{}".format(res["number"], res["title"], orgName, repoName)
+		return res["number"]
+	else:
+		print "[ERROR][CREATE ISSUE] Failed to create {} in {}/{}".format(issueTitle, orgName, repoName)
+
 def addOrgTeam(orgName, newTeam, teamPermissions):
 	""" Add new team to the organization """
 	res = gitHubPost("https://api.github.com/orgs/{}/teams".format(orgName), {"name":newTeam, "permission":teamPermissions})
@@ -327,6 +365,7 @@ addParser.add_argument("-t", "--team", help="perform operations on teams", nargs
 addParser.add_argument("-e", "--perm", help="level of permission", choices=["pull", "push", "admin"], dest="addPerm", default="pull")
 addParser.add_argument("-m", "--member", help="perform operations on members", nargs=1, dest="addMember")
 addParser.add_argument("-k", "--hook", help="perform operations on hooks", nargs=1, dest="addHook")
+addParser.add_argument("-i", "--issues", help="perform operations on issue tracker using file", nargs=1, dest="addIssue")
 
 # Update Commands
 updateParser = subParser.add_parser("update", help="Change a team name or permission level")
@@ -399,15 +438,15 @@ elif 'listTeamID' in args and args.listMemberID != None:
 		unsupportedFeature("listings involving more than one team member")
 
 # add --team t1
-elif 'addTeam' in args and args.addTeam != None and args.addMember == None and args.addRepo == None and args.addHook == None:
+elif 'addTeam' in args and args.addTeam != None and args.addMember == None and args.addRepo == None and args.addHook == None and args.addIssue == None:
 	addOrgTeam(args.org, args.addTeam[0], args.addPerm)
 
 # add --member m1
-elif 'addTeam' in args and args.addTeam == None and args.addMember != None and args.addRepo == None and args.addHook == None:
+elif 'addTeam' in args and args.addTeam == None and args.addMember != None and args.addRepo == None and args.addHook == None and args.addIssue == None:
 	print "[ERROR][ADD MEMBER] GitHub does not allow adding members without teams"
 	
 # add --team t1 --member m1
-elif 'addTeam' in args and args.addTeam != None and args.addMember != None and args.addRepo == None and args.addHook == None:
+elif 'addTeam' in args and args.addTeam != None and args.addMember != None and args.addRepo == None and args.addHook == None and args.addIssue == None:
 	orgProfileFile = ""
 	if args.addProfile != None:
 		orgProfileFile = args.addProfile[0]
@@ -425,18 +464,18 @@ elif 'addTeam' in args and args.addTeam != None and args.addMember != None and a
 		print "[ERROR][ADD MEMBER] {} team does not exist in {}".format(args.addTeam[0], args.org)
 
 # add --repo r1
-elif 'addRepo' in args and args.addTeam == None and args.addMember == None and args.addRepo != None and args.addHook == None:
+elif 'addRepo' in args and args.addTeam == None and args.addMember == None and args.addRepo != None and args.addHook == None and args.addIssue == None:
 	""" Using default options for repo - should fix for better usability """
 	""" FIX ME: take options from commandline """
 	addRepository(args.org, args.addRepo[0], "private lab repository for CS 102 student", True, "C++")
 
 # add --repo r1 --hook url
-elif 'addRepo' in args and args.addTeam == None and args.addMember == None and args.addRepo != None and args.addHook != None:
+elif 'addRepo' in args and args.addTeam == None and args.addMember == None and args.addRepo != None and args.addHook != None and args.addIssue == None:
 	""" Add web hook to repo """
 	addWebHook(args.org, args.addRepo[0], args.addHook[0])
 
 # add --repo r1 --team t1
-elif 'addRepo' in args and args.addTeam != None and args.addMember == None and args.addRepo != None and args.addHook == None:
+elif 'addRepo' in args and args.addTeam != None and args.addMember == None and args.addRepo != None and args.addHook == None and args.addIssue == None:
 	orgProfileFile = ""
 	if args.addProfile != None:
 		orgProfileFile = args.addProfile[0]
@@ -452,6 +491,67 @@ elif 'addRepo' in args and args.addTeam != None and args.addMember == None and a
 		addOrgRepo2Team(args.org, teamID, args.addRepo[0])
 	except ConfigParser.NoOptionError:
 		print "[ERROR][ADD MEMBER] {} team does not exist in {}".format(args.addTeam[0], args.org)
+
+# add --repo r1 --issues issue_file --member USER_NAME
+elif 'addRepo' in args and args.addTeam == None and args.addMember != None and args.addRepo != None and args.addHook == None and args.addIssue != None:
+	""" Add milestones to repo """
+	issueParser = SafeConfigParser()
+	issueParser.optionxform = str  # override optionxform so ConfigParser becomes case insensitive
+	issueParser.read(args.addIssue[0])
+	#print issueParser.sections()
+	if issueParser.has_section("labels"):
+		labels = issueParser.items("labels")
+		for l in labels:
+			l_name = l[0]
+			l_color = l[1]
+			addLabel(args.org, args.addRepo[0], l_name, l_color)
+
+	if issueParser.has_section("milestones"):
+		milestones = issueParser.items("milestones")
+		for m in milestones:
+			try:
+				m_id = m[0]
+				m_name = m[1]
+				m_desc = None
+				m_date = None
+				m_issues = { }
+				
+				for i in issueParser.items(m[0]):
+					i_name = i[0]
+					i_data = i[1]
+					
+					if i_name == "description":
+						m_desc = i_data
+					elif i_name == "date":
+						m_date = i_data
+					else:
+						#Assuming is issue
+						issue = csv.reader(i_data, skipinitialspace=True)
+						issue_title = None
+						issue_desc = None
+						issue_label = None
+						delim_count = 0
+						for s in issue:
+							if s[0] and delim_count == 0:
+								issue_title = s[0]
+							elif s[0] and delim_count == 1:
+								issue_desc = s[0]
+							elif s[0] and delim_count == 2:
+								issue_label = s[0]
+							if s[0]:
+								delim_count += 1
+						m_issues[i_name] = [issue_title, issue_desc, issue_label]
+						
+				m_gh_id = addMilestone(args.org, args.addRepo[0], m_name, m_desc, m_date)
+				for mi in sorted(m_issues.iterkeys()):
+					addIssue(args.org, args.addRepo[0], m_issues[mi][0], m_issues[mi][1], args.addMember[0], m_gh_id, m_issues[mi][2])
+					#print "{}, {}, {}, {}, {}, {}, {}".format(args.org, args.addRepo[0], m_issues[mi][0], m_issues[mi][1], args.addMember[0], m_gh_id, m_issues[mi][2])
+				
+			except ConfigParser.NoSectionError:
+				print "[ERROR][ADD ISSUES] Invalid section '{}'. Section ignored".format(m[0])
+		
+	else:
+		print "[ERROR][ADD ISSUES] Invalid file format {}, no milestones section"
 
 # update --team t1 [[--name newName] || [--perm newPerm]]
 elif 'updateTeam' in args and ( args.updateName != None or args.updatePerm != None):
