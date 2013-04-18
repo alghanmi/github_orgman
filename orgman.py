@@ -467,7 +467,7 @@ elif 'addTeam' in args and args.addTeam != None and args.addMember != None and a
 elif 'addRepo' in args and args.addTeam == None and args.addMember == None and args.addRepo != None and args.addHook == None and args.addIssue == None:
 	""" Using default options for repo - should fix for better usability """
 	""" FIX ME: take options from commandline """
-	addRepository(args.org, args.addRepo[0], "private lab repository for CS 102 student", True, "C++")
+	addRepository(args.org, args.addRepo[0], "private PA repository for CS 102 student", True, "C++")
 
 # add --repo r1 --hook url
 elif 'addRepo' in args and args.addTeam == None and args.addMember == None and args.addRepo != None and args.addHook != None and args.addIssue == None:
@@ -532,13 +532,13 @@ elif 'addRepo' in args and args.addTeam == None and args.addMember != None and a
 						issue_label = None
 						delim_count = 0
 						for s in issue:
-							if s[0] and delim_count == 0:
+							if s and s[0] and delim_count == 0:
 								issue_title = s[0]
-							elif s[0] and delim_count == 1:
+							elif s and s[0] and delim_count == 1:
 								issue_desc = s[0]
-							elif s[0] and delim_count == 2:
+							elif s and s[0] and delim_count == 2:
 								issue_label = s[0]
-							if s[0]:
+							if s and s[0]:
 								delim_count += 1
 						m_issues[i_name] = [issue_title, issue_desc, issue_label]
 						
