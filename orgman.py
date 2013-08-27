@@ -467,7 +467,7 @@ elif 'addTeam' in args and args.addTeam != None and args.addMember != None and a
 elif 'addRepo' in args and args.addTeam == None and args.addMember == None and args.addRepo != None and args.addHook == None and args.addIssue == None:
 	""" Using default options for repo - should fix for better usability """
 	""" FIX ME: take options from commandline """
-	addRepository(args.org, args.addRepo[0], "private PA repository for CS 102 student", True, "C++")
+	addRepository(args.org, args.addRepo[0], "private PA repository for CS 201 student", True, "Java")
 
 # add --repo r1 --hook url
 elif 'addRepo' in args and args.addTeam == None and args.addMember == None and args.addRepo != None and args.addHook != None and args.addIssue == None:
